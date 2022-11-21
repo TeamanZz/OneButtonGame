@@ -7,7 +7,17 @@ using UnityEngine.SceneManagement;
 public class SceneStateHandler : MonoBehaviour
 {
     public int levelIndex = 0;
-    public OnInGameEvent OnLevelStart;
+    public static SceneStateHandler Instance;
+    [HideInInspector] public OnInGameEvent OnLevelStart;
+    [HideInInspector] public OnInGameEvent OnPlayerLose;
+    [HideInInspector] public OnInGameEvent OnPlayerWin;
+    private bool isLose;
+    private bool isWin;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -18,10 +28,41 @@ public class SceneStateHandler : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.X))
         {
-            SceneManager.LoadScene(0);
+            SceneManager.LoadScene(levelIndex);
         }
     }
 
+    public void RestartScene()
+    {
+        SceneManager.LoadScene(levelIndex);
+    }
+
+    public void LoadNextScene()
+    {
+        if (SceneManager.sceneCountInBuildSettings == levelIndex + 1)
+            SceneManager.LoadScene(levelIndex);
+        else
+            SceneManager.LoadScene(levelIndex + 1);
+
+    }
+
+    public void HandleLose()
+    {
+        if (isLose)
+            return;
+        isLose = true;
+
+        OnPlayerLose.Invoke(levelIndex, GameEventType.PlayerLose);
+    }
+
+    public void HandleWin()
+    {
+        if (isWin)
+            return;
+        isWin = true;
+
+        OnPlayerWin.Invoke(levelIndex, GameEventType.PlayerWin);
+    }
 }
 
 [System.Serializable]
