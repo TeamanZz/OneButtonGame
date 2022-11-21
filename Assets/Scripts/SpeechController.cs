@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class SpeechController : MonoBehaviour
 {
-    public AudioSource audioSource;
-    public int speechIndex;
-    public List<AudioClip> speechsList = new List<AudioClip>();
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private int speechIndex;
+    [SerializeField] private List<AudioClip> speechsList = new List<AudioClip>();
 
     private void Start()
     {

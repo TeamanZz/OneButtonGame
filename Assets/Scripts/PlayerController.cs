@@ -10,17 +10,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private List<Rigidbody> ragdollRBList = new List<Rigidbody>();
     [SerializeField] private List<Collider> ragdollCollidersList = new List<Collider>();
 
+    private CharacterState characterState;
     private Rigidbody characterRB;
     private Collider defaultCollider;
     private Animator animator;
     private bool canRun = false;
-    private int stateIndex;
+    private float interpolatedRunningSpeed;
 
     private void Awake()
     {
-        characterRB = GetComponent<Rigidbody>();
-        animator = GetComponent<Animator>();
-        defaultCollider = GetComponent<Collider>();
+        Initialize();
         DisableRagdollComponents();
     }
 
@@ -35,33 +34,50 @@ public class PlayerController : MonoBehaviour
         HandleRunningVelocity();
     }
 
+    public void HandleFreeFall()
+    {
+        SaveInterpolatedRunningSpeed();
+        EnableRagdoll();
+        AddForceOnFreeFall();
+        SetNewState(CharacterState.Ragdoll);
+    }
+
+    private void AddForceOnFreeFall()
+    {
+        foreach (var item in ragdollRBList)
+        {
+            item.AddForce(new Vector3(2, 0, 0) * jumpForce * interpolatedRunningSpeed, ForceMode.Impulse);
+        }
+    }
+
     private void HandleInput()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (stateIndex == 0)
+            if (characterState == CharacterState.Idle)
             {
                 HandleStartRunning();
             }
-            else if (stateIndex == 1)
+            else if (characterState == CharacterState.Running)
             {
                 HandleJump();
             }
         }
     }
 
-    public void HandleStartRunning()
+    private void HandleStartRunning()
     {
         PlayRunningAnimation();
         EnableRunning();
-        SetNewStateIndex(1);
+        SetNewState(CharacterState.Running);
     }
 
     private void HandleJump()
     {
+        SaveInterpolatedRunningSpeed();
         EnableRagdoll();
         AddJumpForce();
-        SetNewStateIndex(2);
+        SetNewState(CharacterState.Ragdoll);
     }
 
     private void HandleRunningVelocity()
@@ -72,12 +88,17 @@ public class PlayerController : MonoBehaviour
             characterRB.velocity = new Vector3(characterMaxRunSpeed, characterRB.velocity.y, characterRB.velocity.z);
     }
 
-    public void EnableRunning()
+    private void EnableRunning()
     {
         canRun = true;
     }
 
-    public void PlayRunningAnimation()
+    private void SaveInterpolatedRunningSpeed()
+    {
+        interpolatedRunningSpeed = characterRB.velocity.x / characterMaxRunSpeed;
+    }
+
+    private void PlayRunningAnimation()
     {
         animator.SetBool("IsRunning", true);
     }
@@ -86,27 +107,26 @@ public class PlayerController : MonoBehaviour
     {
         foreach (var item in ragdollRBList)
         {
-            item.AddForce(new Vector3(2, 2, 0) * jumpForce, ForceMode.Impulse);
+            item.AddForce(new Vector3(2, 2, 0) * jumpForce * interpolatedRunningSpeed, ForceMode.Impulse);
         }
     }
 
     private void DisableRagdollComponents()
     {
-        foreach (var item in ragdollCollidersList)
-        {
-            item.enabled = false;
-        }
-
         foreach (var item in ragdollRBList)
         {
             item.isKinematic = true;
+        }
+
+        foreach (var item in ragdollCollidersList)
+        {
+            item.enabled = false;
         }
     }
 
     private void EnableRagdoll()
     {
         defaultCollider.enabled = false;
-
         foreach (var item in ragdollRBList)
         {
             item.isKinematic = false;
@@ -119,7 +139,6 @@ public class PlayerController : MonoBehaviour
 
         animator.enabled = false;
         characterRB.constraints = RigidbodyConstraints.None;
-        characterRB.useGravity = false;
         characterRB.isKinematic = true;
     }
 
@@ -132,9 +151,22 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void SetNewStateIndex(int newIndex)
+    private void SetNewState(CharacterState newState)
     {
-        stateIndex = newIndex;
+        characterState = newState;
     }
 
+    private void Initialize()
+    {
+        characterRB = GetComponent<Rigidbody>();
+        animator = GetComponent<Animator>();
+        defaultCollider = GetComponent<Collider>();
+    }
+}
+
+enum CharacterState
+{
+    Idle,
+    Running,
+    Ragdoll
 }
